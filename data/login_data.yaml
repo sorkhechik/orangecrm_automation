@@ -1,0 +1,5 @@
+users:
+  - username: Admin
+    password: admin123
+  - username: TestUser
+    password: test123

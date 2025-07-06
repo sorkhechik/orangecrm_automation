@@ -1,0 +1,51 @@
+import os
+import pytest
+from pytest_html import extras
+from markupsafe import Markup
+
+def pytest_configure(config):
+    # اطمینان از ایجاد پوشه screenshots اگر وجود ندارد
+    os.makedirs("screenshots", exist_ok=True)
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    report = outcome.get_result()
+    if report.when == "call" and hasattr(report, 'extra'):  # بررسی وجود extra
+        test_name = item.nodeid.replace("::", "_").replace("/", "_").replace(":", "_")
+        screenshot_path = None
+        if report.outcome == "failed":
+            screenshot_path = f"screenshots/{test_name}_error.png"
+        elif report.outcome == "passed":
+            screenshot_path = f"screenshots/{test_name}.png"
+
+        if screenshot_path and os.path.exists(screenshot_path):
+            with open(screenshot_path, "rb") as f:
+                report.extra.append(extras.image(f.read(), mime_type="image/png"))
+        elif screenshot_path:
+            report.extra.append(extras.text(f"اسکرین‌شات {screenshot_path} یافت نشد.", name="خطا"))
+
+def pytest_html_results_table_header(cells):
+    cells.insert(2, Markup("<th>اسکرین‌شات</th>"))
+
+
+def pytest_html_results_table_row(report, cells):
+    if report.when == "call":
+        test_name = report.nodeid.replace("::", "_").replace("/", "_").replace(":", "_")
+        if report.outcome == "failed":
+            screenshot_path = f"screenshots/{test_name}_error.png" 
+        else:
+            screenshot_path = f"screenshots/{test_name}.png"
+        cells.insert(2, Markup(f'<td><a href="file:///{os.path.abspath(screenshot_path)}">مشاهده تصویر</a></td>'))
+
+
+    # def login(self, username, password):
+    #     self.open("https://your-orangehrm-url")
+    #     status = "success"  # یا "error"، "attempt" بر اساس نتیجه
+    #     test_name = pytest.current_test_name  # یا از item.nodeid استفاده کنید اگر در دسترس است
+    #     if not test_name:
+    #         test_name = "test_open_login_page"  # پیش‌فرض
+    #     screenshot_name = f"screenshots/{test_name}_{status}.png"
+    #     self.save_screenshot(screenshot_name)
+    #     self.save_page_source(f"{test_name}_{status}")
+        # بقیه کد ورود...
